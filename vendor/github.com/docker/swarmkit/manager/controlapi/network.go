@@ -5,7 +5,7 @@ import (
 	"net"
 
 	"github.com/docker/docker/pkg/plugingetter"
-	"github.com/docker/libnetwork/driverapi"
+//	"github.com/docker/libnetwork/driverapi"
 	"github.com/docker/libnetwork/ipamapi"
 	"github.com/docker/swarmkit/api"
 	"github.com/docker/swarmkit/identity"
@@ -92,11 +92,14 @@ func validateNetworkSpec(spec *api.NetworkSpec, pg plugingetter.PluginGetter) er
 		return status.Errorf(codes.PermissionDenied, "label %s is for internally created predefined networks and cannot be applied by users",
 			networkallocator.PredefinedLabel)
 	}
+	return nil
+	/*
 	if err := validateDriver(spec.DriverConfig, pg, driverapi.NetworkPluginEndpointType); err != nil {
 		return err
 	}
 
 	return validateIPAM(spec.IPAM, pg)
+	*/
 }
 
 // CreateNetwork creates and returns a Network based on the provided NetworkSpec.

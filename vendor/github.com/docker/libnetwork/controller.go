@@ -748,6 +748,13 @@ func (c *controller) NewNetwork(networkType, name string, id string, options ...
 		return nil, err
 	}
 
+	if (network.scope == datastore.SwarmScope && !c.isDistributedControl() && !network.dynamic && c.isManager()) {
+		logrus.Warnf("Ignoring ALL OTHER CHECKS")
+                return nil, ManagerRedirectError(name)
+        } else {
+		logrus.Warnf("CONTINUING WITH THE CHECKS : %s %d %d %d", network.scope, c.isDistributedControl(), network.dynamic, c.isManager())
+	}
+
 	// Reset network types, force local scope and skip allocation and
 	// plumbing for configuration networks. Reset of the config-only
 	// network drivers is needed so that this special network is not
@@ -785,12 +792,6 @@ func (c *controller) NewNetwork(networkType, name string, id string, options ...
 		return nil, types.ForbiddenErrorf("cannot create a swarm scoped network when swarm is not active")
 	}
 
-	// Make sure we have a driver available for this network type
-	// before we allocate anything.
-	if _, err := network.driver(true); err != nil {
-		return nil, err
-	}
-
 	// From this point on, we need the network specific configuration,
 	// which may come from a configuration-only network
 	if network.configFrom != "" {
@@ -809,6 +810,12 @@ func (c *controller) NewNetwork(networkType, name string, id string, options ...
 				}
 			}
 		}()
+	}
+
+	// Make sure we have a driver available for this network type
+	// before we allocate anything.
+	if _, err := network.driver(true); err != nil {
+		return nil, err
 	}
 
 	err = network.ipamAllocate()

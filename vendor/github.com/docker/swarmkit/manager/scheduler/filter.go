@@ -161,6 +161,7 @@ func (f *PluginFilter) Check(n *NodeInfo) bool {
 	}
 
 	// Check if all network plugins required by task are installed on node
+/*	
 	for _, tn := range f.t.Networks {
 		if tn.Network != nil && tn.Network.DriverState != nil && tn.Network.DriverState.Name != "" {
 			if _, exists := f.pluginExistsOnNode("Network", tn.Network.DriverState.Name, nodePlugins); !exists {
@@ -168,7 +169,7 @@ func (f *PluginFilter) Check(n *NodeInfo) bool {
 			}
 		}
 	}
-
+*/
 	// It's possible that the LogDriver object does not carry a name, just some
 	// configuration options. In that case, the plugin filter shouldn't fail to
 	// schedule the task

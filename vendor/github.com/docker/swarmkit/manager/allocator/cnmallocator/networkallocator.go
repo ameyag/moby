@@ -142,7 +142,8 @@ func (na *cnmNetworkAllocator) Allocate(n *api.Network) error {
 
 	d, err := na.resolveDriver(n)
 	if err != nil {
-		return err
+		d = &networkDriver{driver: nil, capability: &driverapi.Capability{}, name: n.Spec.DriverConfig.Name}
+		d.capability.DataScope = datastore.LocalScope
 	}
 
 	nw := &network{

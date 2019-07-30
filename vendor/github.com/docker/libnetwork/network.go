@@ -419,6 +419,7 @@ func (n *network) validateConfiguration() error {
 // Applies network specific configurations
 func (n *network) applyConfigurationTo(to *network) error {
 	to.enableIPv6 = n.enableIPv6
+	to.networkType = n.networkType
 	if len(n.labels) > 0 {
 		to.labels = make(map[string]string, len(n.labels))
 		for k, v := range n.labels {
