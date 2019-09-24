@@ -10,6 +10,7 @@ import (
 
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/pkg/stringid"
+	"github.com/sirupsen/logrus"
 )
 
 type windowsParser struct {
@@ -167,8 +168,10 @@ func windowsDetectMountType(p string) mount.Type {
 	if strings.HasPrefix(p, `\\.\pipe\`) {
 		return mount.TypeNamedPipe
 	} else if regexp.MustCompile(`^` + rxHostDir + `$`).MatchString(p) {
+		logrus.Debug("Dealing with Bind")
 		return mount.TypeBind
 	} else {
+		logrus.Debug("Dealing with Volume")
 		return mount.TypeVolume
 	}
 }
@@ -252,6 +255,7 @@ func (p *windowsParser) validateMountConfigReg(mnt *mount.Mount, destRegex strin
 			return &errMountConfig{mnt, err}
 		}
 		if !exists {
+			logrus.Debug("Inside Bind Mount")
 			return &errMountConfig{mnt, errBindSourceDoesNotExist(mnt.Source)}
 		}
 		if !isdir {
