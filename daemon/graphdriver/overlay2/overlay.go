@@ -101,6 +101,7 @@ type Driver struct {
 	options       overlayOptions
 	naiveDiff     graphdriver.DiffDriver
 	supportsDType bool
+	usingMetaCopy bool
 	locker        *locker.Locker
 }
 
@@ -153,6 +154,11 @@ func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 		backingFs = fsName
 	}
 
+	usingMetaCopy, err := fsutils.DoesMetacopy(testdir, opts)
+	if err != nil {
+		return nil, err
+	}
+
 	supportsDType, err := fsutils.SupportsDType(testdir)
 	if err != nil {
 		return nil, err
@@ -175,6 +181,7 @@ func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 		gidMaps:       gidMaps,
 		ctr:           graphdriver.NewRefCounter(graphdriver.NewFsChecker(graphdriver.FsMagicOverlay)),
 		supportsDType: supportsDType,
+		usingMetaCopy: usingMetaCopy,
 		locker:        locker.New(),
 		options:       *opts,
 	}
@@ -265,6 +272,7 @@ func (d *Driver) Status() [][2]string {
 	return [][2]string{
 		{"Backing Filesystem", backingFs},
 		{"Supports d_type", strconv.FormatBool(d.supportsDType)},
+		{"Using metacopy", strconv.FormatBool(d.usingMetaCopy)},
 		{"Native Overlay Diff", strconv.FormatBool(!useNaiveDiff(d.home))},
 		{"userxattr", strconv.FormatBool(userxattr != "")},
 	}

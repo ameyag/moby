@@ -84,3 +84,61 @@ func iterateReadDir(path string, fn func(*unix.Dirent) bool) error {
 	}
 	return nil
 }
+
+// DoesMetacopy checks if the filesystem is going to optimize changes to
+// metadata by using nodes marked with an "overlay.metacopy" attribute to avoid
+// copying up a file from a lower layer unless/until its contents are being
+// modified
+func DoesMetacopy(d, mountOpts string) (bool, error) {
+	td, err := ioutil.TempDir(d, "metacopy-check")
+	if err != nil {
+		return false, err
+	}
+	defer func() {
+		if err := os.RemoveAll(td); err != nil {
+			logrus.Warnf("Failed to remove check directory %v: %v", td, err)
+		}
+	}()
+
+	// Make directories l1, l2, work, merged
+	if err := os.MkdirAll(filepath.Join(td, "l1"), 0755); err != nil {
+		return false, err
+	}
+	if err := ioutils.AtomicWriteFile(filepath.Join(td, "l1", "f"), []byte{0xff}, 0700); err != nil {
+		return false, err
+	}
+	if err := os.MkdirAll(filepath.Join(td, "l2"), 0755); err != nil {
+		return false, err
+	}
+	if err := os.Mkdir(filepath.Join(td, "work"), 0755); err != nil {
+		return false, err
+	}
+	if err := os.Mkdir(filepath.Join(td, "merged"), 0755); err != nil {
+		return false, err
+	}
+	// Mount using the mandatory options and configured options
+	opts := fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", path.Join(td, "l1"), path.Join(td, "l2"), path.Join(td, "work"))
+	flags, data := mount.ParseOptions(mountOpts)
+	if data != "" {
+		opts = fmt.Sprintf("%s,%s", opts, data)
+	}
+	if err := unix.Mount("overlay", filepath.Join(td, "merged"), "overlay", uintptr(flags), opts); err != nil {
+		return false, errors.Wrap(err, "failed to mount overlay for metacopy check")
+	}
+	defer func() {
+		if err := unix.Unmount(filepath.Join(td, "merged"), 0); err != nil {
+			logrus.Warnf("Failed to unmount check directory %v: %v", filepath.Join(td, "merged"), err)
+		}
+	}()
+	// Make a change that only impacts the inode, and check if the pulled-up copy is marked
+	// as a metadata-only copy
+	if err := os.Chmod(filepath.Join(td, "merged", "f"), 0600); err != nil {
+		return false, errors.Wrap(err, "error changing permissions on file for metacopy check")
+	}
+	metacopy, err := system.Lgetxattr(filepath.Join(td, "l2", "f"), "trusted.overlay.metacopy")
+	if err != nil {
+		return false, errors.Wrap(err, "metacopy flag was not set on file in upper layer")
+	}
+	return metacopy != nil, nil
+}
+
