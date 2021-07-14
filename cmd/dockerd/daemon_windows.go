@@ -61,8 +61,15 @@ func (cli *DaemonCli) getPlatformContainerdDaemonOpts() ([]supervisor.DaemonOpt,
 // setupConfigReloadTrap configures a Win32 event to reload the configuration.
 func (cli *DaemonCli) setupConfigReloadTrap() {
 	go func() {
+		sd, err := windows.SecurityDescriptorFromString("D:P(A;;GA;;;BA)(A;;GA;;;SY)")
+		if err != nil {
+			logrus.Errorf("failed to get security descriptor for debug stackdump event %s: %s", event, err.Error())
+			return
+		}
 		sa := windows.SecurityAttributes{
-			Length: 0,
+			Length:             0,
+			SecurityDescriptor: sd,
+			InheritHandle:      1,
 		}
 		event := "Global\\docker-daemon-config-" + fmt.Sprint(os.Getpid())
 		ev, _ := windows.UTF16PtrFromString(event)
